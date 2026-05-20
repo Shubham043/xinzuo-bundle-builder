@@ -1,0 +1,227 @@
+<div class="bundle-builder">
+  <div class="bundle-builder__header">
+    <h1>Build Your Own Knife Set</h1>
+    <p>Select your knives and save more as you add more</p>
+    <div class="bundle-builder__tiers">
+      <div class="tier">Buy 2 — Save 5%</div>
+      <div class="tier">Buy 3 — Save 10%</div>
+      <div class="tier">Buy 4+ — Save 15%</div>
+    </div>
+  </div>
+
+  <div class="bundle-builder__body">
+    <div class="bundle-builder__products" id="product-grid">
+      {% for product in collections['all'].products limit: 12 %}
+        <div class="bundle-card" data-price="{{ product.price }}">
+          <img src="{{ product.featured_image | img_url: '400x400' }}" alt="{{ product.title }}">
+          <h3>{{ product.title }}</h3>
+          <p class="price">{{ product.price | money }}</p>
+          <button class="btn-add" onclick="addToBundle(this, '{{ product.title }}', {{ product.price }})">Add to Bundle</button>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="bundle-builder__cart" id="bundle-cart">
+      <h2>Your Bundle</h2>
+      <div id="cart-items">
+        <p class="empty-msg">No items yet. Pick your knives!</p>
+      </div>
+      <div class="bundle-summary" id="bundle-summary" style="display:none">
+        <div class="summary-row"><span>Subtotal</span><span id="subtotal">$0.00</span></div>
+        <div class="summary-row discount"><span>Discount</span><span id="discount">-$0.00</span></div>
+        <div class="summary-row total"><span>Total</span><span id="total">$0.00</span></div>
+        <button class="btn-checkout" onclick="checkout()">Add All to Cart</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.bundle-builder {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  font-family: inherit;
+}
+.bundle-builder__header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+.bundle-builder__header h1 {
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+.bundle-builder__tiers {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.tier {
+  background: #1a1a1a;
+  color: #fff;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+}
+.bundle-builder__body {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 40px;
+  align-items: start;
+}
+@media (max-width: 768px) {
+  .bundle-builder__body {
+    grid-template-columns: 1fr;
+  }
+}
+.bundle-builder__products {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 24px;
+}
+.bundle-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+}
+.bundle-card img {
+  width: 100%;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+.bundle-card h3 {
+  font-size: 0.95rem;
+  margin-bottom: 8px;
+}
+.bundle-card .price {
+  color: #555;
+  margin-bottom: 12px;
+}
+.btn-add {
+  background: #1a1a1a;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  width: 100%;
+}
+.btn-add:hover { background: #333; }
+.bundle-builder__cart {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 24px;
+  position: sticky;
+  top: 100px;
+}
+.bundle-builder__cart h2 {
+  margin-bottom: 16px;
+  font-size: 1.2rem;
+}
+.cart-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 0.9rem;
+}
+.cart-item button {
+  background: none;
+  border: none;
+  color: red;
+  cursor: pointer;
+  font-size: 1rem;
+}
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+}
+.summary-row.total {
+  font-weight: bold;
+  font-size: 1.1rem;
+  border-top: 1px solid #e0e0e0;
+  margin-top: 8px;
+}
+.summary-row.discount { color: green; }
+.btn-checkout {
+  width: 100%;
+  background: #1a1a1a;
+  color: #fff;
+  border: none;
+  padding: 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 16px;
+  font-size: 1rem;
+}
+.btn-checkout:hover { background: #333; }
+.empty-msg { color: #999; font-size: 0.9rem; }
+</style>
+
+<script>
+let bundleItems = [];
+
+function addToBundle(btn, title, price) {
+  bundleItems.push({ title, price });
+  btn.textContent = '✓ Added';
+  btn.style.background = '#4CAF50';
+  setTimeout(() => {
+    btn.textContent = 'Add to Bundle';
+    btn.style.background = '#1a1a1a';
+  }, 1000);
+  updateCart();
+}
+
+function removeItem(index) {
+  bundleItems.splice(index, 1);
+  updateCart();
+}
+
+function getDiscount() {
+  const count = bundleItems.length;
+  if (count >= 4) return 0.15;
+  if (count === 3) return 0.10;
+  if (count === 2) return 0.05;
+  return 0;
+}
+
+function updateCart() {
+  const cartItems = document.getElementById('cart-items');
+  const summary = document.getElementById('bundle-summary');
+  
+  if (bundleItems.length === 0) {
+    cartItems.innerHTML = '<p class="empty-msg">No items yet. Pick your knives!</p>';
+    summary.style.display = 'none';
+    return;
+  }
+
+  let html = '';
+  bundleItems.forEach((item, i) => {
+    html += `<div class="cart-item">
+      <span>${item.title}</span>
+      <span>${(item.price/100).toFixed(2)}</span>
+      <button onclick="removeItem(${i})">✕</button>
+    </div>`;
+  });
+  cartItems.innerHTML = html;
+
+  const subtotal = bundleItems.reduce((sum, item) => sum + item.price, 0);
+  const discount = getDiscount();
+  const discountAmt = subtotal * discount;
+  const total = subtotal - discountAmt;
+
+  document.getElementById('subtotal').textContent = '$' + (subtotal/100).toFixed(2);
+  document.getElementById('discount').textContent = '-$' + (discountAmt/100).toFixed(2);
+  document.getElementById('total').textContent = '$' + (total/100).toFixed(2);
+  summary.style.display = 'block';
+}
+
+function checkout() {
+  alert('Adding ' + bundleItems.length + ' items to cart!');
+}
+</script>
